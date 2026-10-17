@@ -51,6 +51,10 @@ def test_deep_research_skill_includes_hermes_adapter_without_dropping_other_agen
     assert "resume" in skill
     assert "Claude Code" in skill
     assert "OpenAI Codex" in skill
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "### Hermes Agent" in readme
+    assert "hermes plugins doctor" in readme
+    assert "hyperresearch mcp --read-only" in readme
 
 
 def _mcp_tool_names(read_only: bool) -> set[str]:

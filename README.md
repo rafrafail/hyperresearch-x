@@ -135,6 +135,36 @@ What is different on Codex:
 - **Tool locks are instructions, not enforcement.** Codex custom agents have no per-agent tool allowlist. The patcher and polish auditor are told to make surgical edits only, but nothing stops them from doing more.
 - **A Stop hook guards the pipeline.** `hyperresearch run stop-gate` blocks the session from ending while the newest run is mid-pipeline, so Codex cannot quietly answer inline and stop. Codex runs a project's hooks only after you trust them.
 
+### Hermes Agent
+
+Hyperresearch is also packaged as a portable Hermes plugin. The plugin installs
+disabled by default and contains this `deep-research` skill plus a **read-only**
+MCP connection for inspecting an existing vault. The Python package remains the
+research engine and must be installed separately:
+
+```bash
+pip install "hyperresearch[mcp]"
+hermes plugins install rafrafail/hyperresearch-x --no-enable
+hermes plugins doctor hyperresearch --ci
+hermes plugins enable hyperresearch
+```
+
+Start a fresh Hermes session after enabling the plugin, then ask for deep
+research or explicitly load `deep-research`. The skill preserves the question
+verbatim in `research/runs/<tag>/query.md`, creates a run manifest, and uses
+`hyperresearch run status` and `hyperresearch run resume` to recover work.
+
+The bundled MCP server runs:
+
+```bash
+hyperresearch mcp --read-only
+```
+
+It exposes search, read, listing, backlinks, vault status and lint tools; it
+does **not** expose `fetch_url`, `create_note`, or `update_note`. Fetching and
+writing remain explicit pipeline/CLI actions. CAPTCHA, login walls and 2FA are
+human escalations, not agent bypasses.
+
 ---
 
 ## The 16-step research pipeline
@@ -283,7 +313,7 @@ hyperresearch watch                   # auto-sync while you edit in your own edi
 
 ## Use the vault outside Claude Code
 
-**An MCP server.** `pip install hyperresearch[mcp]`, then `hyperresearch mcp` speaks stdio, so Claude Desktop, Cursor, or anything else that speaks MCP can work the same vault. Thirteen tools: `search_notes`, `read_note`, `read_many`, `list_notes`, `get_backlinks`, `get_hubs`, `vault_status`, `lint_vault`, `check_source`, `list_sources`, `fetch_url`, `create_note`, `update_note`.
+**An MCP server.** `pip install hyperresearch[mcp]`, then `hyperresearch mcp` speaks stdio, so Claude Desktop, Cursor, or anything else that speaks MCP can work the same vault. The default server exposes thirteen tools: `search_notes`, `read_note`, `read_many`, `list_notes`, `get_backlinks`, `get_hubs`, `vault_status`, `lint_vault`, `check_source`, `list_sources`, `fetch_url`, `create_note`, `update_note`. For Hermes and other least-privilege integrations, use `hyperresearch mcp --read-only`; it exposes only the ten search, read, listing, navigation and status tools and omits every mutation/fetch tool.
 
 **A local web UI.** `hyperresearch serve --open` starts a stdlib HTTP server on port 8080 with note browsing, tag pages, search, and an interactive link graph. No build step and no JavaScript dependencies.
 
