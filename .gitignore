@@ -31,4 +31,7 @@ GEMINI.md
 # Per-vault research output
 research/
 
+# Local verification artifacts and isolated environments.
+_work/
+
 .knack/
