@@ -7,15 +7,31 @@ Read-only by design — agents create/edit notes via file operations, hyperresea
 from __future__ import annotations
 
 import json
+import os
+from collections.abc import Callable
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+
+_READ_ONLY = os.environ.get("HYPERRESEARCH_MCP_READ_ONLY", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 server = FastMCP("hyperresearch", instructions=(
     "hyperresearch is an agent-driven research knowledge base. Use these tools to search, read, "
     "and navigate research notes with wiki-links, tags, and summaries. Notes live in the research/ "
-    "directory as markdown files with YAML frontmatter. To create or edit notes, write "
-    "files directly and they will be auto-indexed."
+    "directory as markdown files with YAML frontmatter."
 ))
+
+
+def _write_tool() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Register write tools only for an explicit non-read-only MCP session."""
+    if _READ_ONLY:
+        return lambda function: function
+    return server.tool()
 
 _vault = None
 
@@ -295,7 +311,7 @@ def list_sources(domain: str = "", limit: int = 50) -> str:
     return json.dumps([dict(r) for r in rows])
 
 
-@server.tool()
+@_write_tool()
 def fetch_url(url: str, tags: str = "", provider: str = "") -> str:
     """Fetch a URL and save it as a research note.
 
@@ -322,7 +338,7 @@ def fetch_url(url: str, tags: str = "", provider: str = "") -> str:
         return json.dumps({"ok": False, "error": str(e), "error_code": "FETCH_ERROR"})
 
 
-@server.tool()
+@_write_tool()
 def create_note(title: str, body: str, tags: str = "", source: str = "", summary: str = "") -> str:
     """Create a new research note.
 
@@ -370,7 +386,7 @@ def create_note(title: str, body: str, tags: str = "", source: str = "", summary
     }})
 
 
-@server.tool()
+@_write_tool()
 def update_note(note_id: str, status: str = "", add_tags: str = "", remove_tags: str = "", summary: str = "") -> str:
     """Update a note's metadata.
 
