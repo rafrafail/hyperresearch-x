@@ -190,6 +190,7 @@ class TestRunCli:
         data = json.loads(r.stdout)["data"]
         assert data["vault_tag"] == "cli-run-000001"
         assert data["next_step"] == "2"
+        assert load_manifest(tmp_vault, "cli-run-000001")["status"] == "running"
         # The full installed slug, not a bare `hyperresearch-2` that the
         # Skill tool cannot resolve (#100).
         assert data["skill_to_invoke"] == "hyperresearch-2-width-sweep"
@@ -197,6 +198,11 @@ class TestRunCli:
         r = runner.invoke(app, ["run", "abort", "cli-run-000001", "--json"])
         assert r.exit_code == 0
         assert json.loads(r.stdout)["data"]["status"] == "aborted"
+
+        r = runner.invoke(app, ["run", "resume", "cli-run-000001", "--json"])
+        assert r.exit_code == 0
+        assert json.loads(r.stdout)["data"]["next_step"] == "2"
+        assert load_manifest(tmp_vault, "cli-run-000001")["status"] == "running"
 
     def test_resume_maps_fractional_step_to_skill(self, tmp_vault, monkeypatch):
         from typer.testing import CliRunner

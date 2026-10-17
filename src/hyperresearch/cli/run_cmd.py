@@ -177,7 +177,7 @@ def run_resume(
         raise typer.Exit(1)
 
     position = run_resume_position(vault, manifest)
-    if manifest["status"] in ("paused", "blocked", "failed"):
+    if manifest["status"] in ("paused", "blocked", "failed", "aborted"):
         set_status(vault, tag, "running")
 
     data = {
