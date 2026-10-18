@@ -179,9 +179,10 @@ camofox_url = "http://127.0.0.1:9377"
 camofox_timeout_s = 45
 ```
 
-If the Camofox server itself requires authentication, set its `CAMOFOX_API_KEY`
-in the process environment. A blocked CAPTCHA/login page is never retried via
-Camofox and remains a human escalation.
+If the Camofox server itself requires authentication, set its access key in the
+process environment as `CAMOFOX_API_KEY`. The key is read from the environment
+only and is never written to the vault config or to Git. A blocked
+CAPTCHA/login page is never retried via Camofox and remains a human escalation.
 
 ---
 

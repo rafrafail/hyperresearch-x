@@ -326,6 +326,7 @@ def fetch(
     rescue_reason: str | None = None
     rescue_doi: str | None = None
     oa_location = None
+    camofox_reason: str | None = None
 
     def _rescue(reason: str, raw_html: str | None):
         """Attempt an OA rescue. Returns a WebResult or None."""
@@ -358,6 +359,7 @@ def fetch(
         return "http 403" in lower or "http 429" in lower or lower.startswith("bot detection")
 
     def _try_camofox(reason: str):
+        nonlocal camofox_reason
         if not _can_try_camofox(reason):
             return None
         try:
@@ -371,6 +373,7 @@ def fetch(
             return None
         if not json_output:
             console.print("[cyan]Recovered through Camofox browser fallback.[/]")
+        camofox_reason = reason
         return result
 
     try:
@@ -475,6 +478,9 @@ def fetch(
         "fetched_at": result.fetched_at.isoformat(),
         "fetch_provider": prov.name,
     }
+    if camofox_reason is not None:
+        extra_meta["fetch_provider_chain"] = f"{prov.name} → camofox"
+        extra_meta["camofox_fallback_reason"] = camofox_reason
     if result.metadata.get("author"):
         extra_meta["author"] = result.metadata["author"]
 
@@ -510,6 +516,12 @@ def fetch(
     # The recovery banner goes above everything else in the body — a reader
     # must not have to scroll or check frontmatter to learn that these bytes
     # came from somewhere other than `source:`.
+    if camofox_reason is not None:
+        body_content = (
+            "> [!note] Browser fallback\n"
+            f"> Direct fetch failed ({camofox_reason}); this page was rendered "
+            "by the local Camofox browser fallback.\n\n" + body_content
+        )
     if oa_location is not None:
         body_content = (
             recovery_notice(oa_location, url, original_chars, blocked_reason=rescue_reason)

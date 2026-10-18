@@ -63,7 +63,13 @@ def test_fetch_uses_camofox_after_public_403(vault_dir: Path, monkeypatch: pytes
 
     assert result.exit_code == 0
     assert _CamofoxProvider.calls == 1
-    assert any((vault_dir / "research" / "notes").glob("*.md"))
+    notes = list((vault_dir / "research" / "notes").glob("*.md"))
+    assert notes
+    note_text = notes[0].read_text(encoding="utf-8")
+    assert "fetch_provider_chain" in note_text
+    assert "builtin → camofox" in note_text
+    assert "camofox_fallback_reason" in note_text
+    assert "Browser fallback" in note_text
 
 
 def test_fetch_never_uses_camofox_for_captcha(vault_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
