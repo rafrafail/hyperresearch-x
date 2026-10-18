@@ -165,6 +165,24 @@ does **not** expose `fetch_url`, `create_note`, or `update_note`. Fetching and
 writing remain explicit pipeline/CLI actions. CAPTCHA, login walls and 2FA are
 human escalations, not agent bypasses.
 
+### Optional Camofox fallback
+
+For a public page that rejects direct HTTP with 403/429 or a non-CAPTCHA bot
+wall, Hyperresearch can retry once through a self-hosted Camofox browser. This
+is opt-in, keeps the existing SSRF gate, and is not a login, paywall, or CAPTCHA
+bypass. Configure the local service URL in the vault (leave it empty to disable
+this fallback):
+
+```toml
+[fetch]
+camofox_url = "http://127.0.0.1:9377"
+camofox_timeout_s = 45
+```
+
+If the Camofox server itself requires authentication, set its `CAMOFOX_API_KEY`
+in the process environment. A blocked CAPTCHA/login page is never retried via
+Camofox and remains a human escalation.
+
 ---
 
 ## The 16-step research pipeline
