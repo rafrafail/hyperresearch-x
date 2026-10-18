@@ -11,6 +11,7 @@ keep working exactly as before.
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import threading
 
 import pytest
@@ -19,6 +20,15 @@ pytest.importorskip("crawl4ai.browser_adapter")
 
 from hyperresearch.web.base import WebResult
 from hyperresearch.web.crawl4ai_provider import Crawl4AIProvider
+
+
+@pytest.fixture
+def public_example_dns(monkeypatch):
+    """Keep the async-wrapper tests hermetic under X-CICD's network=none sandbox."""
+    monkeypatch.setattr(
+        "hyperresearch.web.safe_http._resolve",
+        lambda _host: [ipaddress.ip_address("93.184.216.34")],
+    )
 
 
 def _run_on_a_fresh_thread(coro):
@@ -48,7 +58,9 @@ def _run_on_a_fresh_thread(coro):
     return box["result"]
 
 
-def test_fetch_succeeds_when_called_from_a_running_event_loop(monkeypatch) -> None:
+def test_fetch_succeeds_when_called_from_a_running_event_loop(
+    monkeypatch, public_example_dns
+) -> None:
     async def fake_fetch_async(self, url):
         return WebResult(url=url, title="ok", content="fetched content")
 
@@ -64,7 +76,7 @@ def test_fetch_succeeds_when_called_from_a_running_event_loop(monkeypatch) -> No
     assert result.content == "fetched content"
 
 
-def test_fetch_still_succeeds_with_no_running_loop(monkeypatch) -> None:
+def test_fetch_still_succeeds_with_no_running_loop(monkeypatch, public_example_dns) -> None:
     """The CLI's plain synchronous call path (no event loop on the thread)."""
     async def fake_fetch_async(self, url):
         return WebResult(url=url, title="ok", content="fetched content")
