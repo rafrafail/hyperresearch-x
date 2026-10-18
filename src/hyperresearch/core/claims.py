@@ -48,7 +48,7 @@ def _scalar_field(value):
     """Numbers and short strings pass; anything else becomes None."""
     if isinstance(value, bool) or value is None:
         return None
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return value
     if isinstance(value, str):
         return value[:MAX_CLAIM_FIELD_CHARS]

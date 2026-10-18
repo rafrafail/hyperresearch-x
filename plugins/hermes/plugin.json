@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hyperresearch",
+  "version": "0.12.0",
+  "description": "Deep research pipeline with a persistent source vault, adversarial review, and verified citations for Hermes Agent.",
+  "author": {
+    "name": "Jordan Gibbs",
+    "url": "https://github.com/jordan-gibbs"
+  },
+  "homepage": "https://github.com/jordan-gibbs/hyperresearch",
+  "repository": "https://github.com/jordan-gibbs/hyperresearch",
+  "license": "MIT",
+  "keywords": [
+    "deep-research",
+    "research",
+    "citations",
+    "knowledge-base",
+    "hermes-agent",
+    "mcp"
+  ]
+}

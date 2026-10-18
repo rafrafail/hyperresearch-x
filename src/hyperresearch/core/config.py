@@ -325,7 +325,7 @@ class VaultConfig:
     def _toml_value(value) -> str:
         if isinstance(value, bool):
             return "true" if value else "false"
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return "[" + ", ".join(VaultConfig._toml_value(v) for v in value) + "]"
         if isinstance(value, dict):
             inner = ", ".join(f"{k} = {VaultConfig._toml_value(v)}" for k, v in value.items())
