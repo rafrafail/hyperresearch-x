@@ -123,6 +123,11 @@ class NoteMeta(BaseModel):
     # read at all, so the ENTIRE note (title and authors included) is the
     # open-access copy and nothing in it came from `source`.
     oa_recovery_kind: str | None = None
+    # Browser fallback (web/camofox_provider.py). When set, direct fetching
+    # failed and the body was rendered by the local Camofox browser service;
+    # `fetch_provider` stays the provider that was attempted first.
+    fetch_provider_chain: str | None = None   # e.g. "builtin → camofox"
+    camofox_fallback_reason: str | None = None  # e.g. "fetch failed: HTTP 403 ..."
 
     @field_validator("tags", mode="before")
     @classmethod

@@ -46,6 +46,11 @@ class FetchSettings:
         "linkedin.com", "twitter.com", "x.com", "facebook.com",
         "instagram.com", "tiktok.com",
     )
+    # Optional self-hosted Camofox REST service. Empty keeps the fallback off.
+    # Authentication, if the service has it, is supplied only through
+    # CAMOFOX_API_KEY; it is deliberately not a vault configuration field.
+    camofox_url: str = ""
+    camofox_timeout_s: int = 45
 
 
 @dataclass(frozen=True)

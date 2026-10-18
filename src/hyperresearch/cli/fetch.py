@@ -326,6 +326,7 @@ def fetch(
     rescue_reason: str | None = None
     rescue_doi: str | None = None
     oa_location = None
+    camofox_reason: str | None = None
 
     def _rescue(reason: str, raw_html: str | None):
         """Attempt an OA rescue. Returns a WebResult or None."""
@@ -344,10 +345,43 @@ def fetch(
             )
         return rescued
 
+    def _can_try_camofox(reason: str) -> bool:
+        """Use the opt-in browser only for public anti-bot HTTP failures.
+
+        It is never a CAPTCHA/login/paywall bypass path. Those remain human
+        escalations or legal open-access recovery cases.
+        """
+        lower = reason.lower()
+        if not vault.config.fetch.camofox_url or prov.name == "camofox":
+            return False
+        if any(signal in lower for signal in ("captcha", "login", "sign in", "auth required")):
+            return False
+        return "http 403" in lower or "http 429" in lower or lower.startswith("bot detection")
+
+    def _try_camofox(reason: str):
+        nonlocal camofox_reason
+        if not _can_try_camofox(reason):
+            return None
+        try:
+            fallback = get_provider("camofox", settings=vault.config.fetch)
+            result = fallback.fetch(url)
+            if result.looks_like_junk(vault.config.junk):
+                return None
+        except Exception as exc:
+            if not json_output:
+                console.print(f"[dim]Camofox fallback unavailable: {exc}[/]")
+            return None
+        if not json_output:
+            console.print("[cyan]Recovered through Camofox browser fallback.[/]")
+        camofox_reason = reason
+        return result
+
     try:
         result = prov.fetch(url)
     except Exception as e:
         result = _rescue(f"fetch failed: {e}", None)
+        if result is None:
+            result = _try_camofox(f"fetch failed: {e}")
         if result is None:
             if json_output:
                 output(error(str(e), "FETCH_ERROR"), json_mode=True)
@@ -386,22 +420,26 @@ def fetch(
         if rescued is not None:
             result = rescued
         else:
-            item_id = None
-            if junk_reason.startswith("Bot detection"):
-                reason = "captcha" if "captcha" in junk_reason.lower() else "bot_block"
-                item_id = _escalate_blocked(vault, url, reason, tags, suggested_by, utility_score,
-                                            detail=junk_reason)
-            escalated = f" Queued for browser-lane escalation (#{item_id})." if item_id else ""
-            # A PDF that failed its own lane lands here as "binary garbage";
-            # say why the PDF lane declined it, or the message is useless (#82).
-            pdf_failure = result.metadata.get(PDF_FAILURE_KEY)
-            pdf_note = f" PDF lane: {pdf_failure}." if pdf_failure else ""
-            msg = f"Skipped junk content from {url}: {junk_reason}.{pdf_note}{escalated}"
-            if json_output:
-                output(error(msg, "JUNK_ESCALATED" if item_id else "JUNK_CONTENT"), json_mode=True)
+            camofox_result = _try_camofox(junk_reason)
+            if camofox_result is not None:
+                result = camofox_result
             else:
-                console.print(f"[yellow]Skipped:[/] {msg}")
-            raise typer.Exit(1)
+                item_id = None
+                if junk_reason.startswith("Bot detection"):
+                    reason = "captcha" if "captcha" in junk_reason.lower() else "bot_block"
+                    item_id = _escalate_blocked(vault, url, reason, tags, suggested_by, utility_score,
+                                                detail=junk_reason)
+                escalated = f" Queued for browser-lane escalation (#{item_id})." if item_id else ""
+                # A PDF that failed its own lane lands here as "binary garbage";
+                # say why the PDF lane declined it, or the message is useless (#82).
+                pdf_failure = result.metadata.get(PDF_FAILURE_KEY)
+                pdf_note = f" PDF lane: {pdf_failure}." if pdf_failure else ""
+                msg = f"Skipped junk content from {url}: {junk_reason}.{pdf_note}{escalated}"
+                if json_output:
+                    output(error(msg, "JUNK_ESCALATED" if item_id else "JUNK_CONTENT"), json_mode=True)
+                else:
+                    console.print(f"[yellow]Skipped:[/] {msg}")
+                raise typer.Exit(1)
 
     # Source-ranking capture: DOI/arXiv id + the orchestrator's utility score.
     # On a rescue, the DOI we resolved with is the authority — re-extracting
@@ -440,6 +478,9 @@ def fetch(
         "fetched_at": result.fetched_at.isoformat(),
         "fetch_provider": prov.name,
     }
+    if camofox_reason is not None:
+        extra_meta["fetch_provider_chain"] = f"{prov.name} → camofox"
+        extra_meta["camofox_fallback_reason"] = camofox_reason
     if result.metadata.get("author"):
         extra_meta["author"] = result.metadata["author"]
 
@@ -475,6 +516,12 @@ def fetch(
     # The recovery banner goes above everything else in the body — a reader
     # must not have to scroll or check frontmatter to learn that these bytes
     # came from somewhere other than `source:`.
+    if camofox_reason is not None:
+        body_content = (
+            "> [!note] Browser fallback\n"
+            f"> Direct fetch failed ({camofox_reason}); this page was rendered "
+            "by the local Camofox browser fallback.\n\n" + body_content
+        )
     if oa_location is not None:
         body_content = (
             recovery_notice(oa_location, url, original_chars, blocked_reason=rescue_reason)

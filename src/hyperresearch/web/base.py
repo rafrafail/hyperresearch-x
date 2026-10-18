@@ -210,6 +210,11 @@ def get_provider(
         except ImportError:
             raise ImportError("crawl4ai provider requires: pip install hyperresearch[crawl4ai]")
 
+    if name == "camofox":
+        from hyperresearch.web.camofox_provider import CamofoxProvider
+
+        return CamofoxProvider(settings=settings)
+
     if name == "exa":
         from hyperresearch.web.exa_provider import ExaProvider
 
