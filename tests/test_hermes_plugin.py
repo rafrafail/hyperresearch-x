@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+DISTRIBUTION_ROOT = ROOT / "plugins/hermes"
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
 
@@ -27,6 +28,14 @@ def test_portable_plugin_manifest_has_required_v1_contract() -> None:
     assert manifest["license"] == "MIT"
     assert manifest["repository"] == "https://github.com/jordan-gibbs/hyperresearch"
     assert all("token" not in key.lower() and "secret" not in key.lower() for key in manifest)
+
+
+def test_installable_distribution_mirrors_portable_plugin_contract() -> None:
+    for name in ("plugin.json", "mcp.json"):
+        assert json.loads((DISTRIBUTION_ROOT / name).read_text(encoding="utf-8")) == _read_json(name)
+    assert (DISTRIBUTION_ROOT / "skills/deep-research/SKILL.md").read_text(
+        encoding="utf-8"
+    ) == (ROOT / "skills/deep-research/SKILL.md").read_text(encoding="utf-8")
 
 
 def test_portable_mcp_manifest_starts_read_only_server() -> None:

@@ -144,7 +144,7 @@ research engine and must be installed separately:
 
 ```bash
 pip install "hyperresearch[mcp]"
-hermes plugins install rafrafail/hyperresearch-x --no-enable
+hermes plugins install rafrafail/hyperresearch-x/plugins/hermes --no-enable
 hermes plugins doctor hyperresearch --ci
 hermes plugins enable hyperresearch
 ```
